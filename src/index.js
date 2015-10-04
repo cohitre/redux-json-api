@@ -32,17 +32,20 @@ function getAttribute(obj, attributeName, defaultValue) {
   return (obj || Immutable.fromJS({})).getIn(['attributes', attributeName], defaultValue);
 }
 
+const MovieComponent = React.createClass({
+  mixins: [React.addons.PureRenderMixin],
+  render() {
+    const id = this.props.movie.get('id');
+    const title = this.props.movie.getIn(['attributes', 'title']);
+    return <li key={id}>{title} | last rendered {(new Date()).getTime()}</li>;
+  }
+});
+
 const App = React.createClass({
   mixins: [React.addons.PureRenderMixin],
-
   login(e) {
     e.preventDefault();
     this.props.login();
-  },
-
-  addMovie(e) {
-    e.preventDefault();
-    this.props.addMovie();
   },
 
   loadFavoriteMovies(e) {
@@ -50,22 +53,31 @@ const App = React.createClass({
     this.props.loadFavoriteMovies();
   },
 
-  render() {
-    const store = this.props.applicationState;
-
+  renderTop(store) {
     const currentUserId = store.getIn(['session', 'current-session', 'attributes', 'userId']);
     const currentUserEmail = store.getIn(['user', currentUserId, 'attributes', 'email']);
-    const movieComponents = store.get('movie', Immutable.Map()).reduce(function(movieComponents, value, id) {
-      const fav = (e) => {
-        e.preventDefault();
-        this.props.favoriteMovie(id);
-      };
-      movieComponents.push(<li key={id}>{value.getIn(['attributes', 'title'])}</li>);
-      return movieComponents;
-    }, []);
+
+    return <div className="text-right">
+      Last updated {(new Date()).getTime()} | {currentUserEmail ? currentUserEmail : <em>No session</em>} | <a className="btn btn-info" onClick={this.login}>Log in</a>
+    </div>;
+  },
+
+  render() {
+    const {store} = this.props;
+    const currentUserId = store.getIn(['session', 'current-session', 'attributes', 'userId']);
+    const currentUserEmail = store.getIn(['user', currentUserId, 'attributes', 'email']);
+    const movieComponents = store.get('movie', Immutable.Map()).toList()
+      .sort(function(a, b) {
+        return a.getIn(['attributes', 'title']) < b.getIn(['attributes', 'title']) ? -1 : 1;
+      })
+      .reduce(function(movieComponents, value) {
+        movieComponents.push(<MovieComponent movie={value} />);
+        return movieComponents;
+      }, []);
 
     const isLoadingPage = store.getIn(['user', currentUserId, 'relationships', 'favorite-movies', 'isLoadingPage']);
     const nextPageHref =  store.getIn(['user', currentUserId, 'relationships', 'favorite-movies', 'nextPageHref']);
+
     let loadMoreLink = 'Nothing to load';
     if (isLoadingPage) {
       loadMoreLink = 'loading...';
@@ -75,18 +87,23 @@ const App = React.createClass({
     }
 
     return <div>
-      <a href="#" onClick={this.login}>Log-in</a> - <a href="#" onClick={this.addMovie}>Add movie</a>
-      <h1>{currentUserEmail} - {currentUserId}</h1>
-      <p>Last rendered: {(new Date()).getTime()}</p>
-      <h2>Favorite movies {loadMoreLink}</h2>
-      <ul style={{float: 'left', width: '300px'}}>{movieComponents}</ul>
-      <pre style={{float: 'left'}}>{JSON.stringify(store.toJS(), null, ' ')}</pre>
+      {this.renderTop(store)}
+      <div className="row">
+        <div className="col-sm-5 col-sm-offset-1">
+          <h2>Store</h2>
+          <pre>{JSON.stringify(store.toJS(), null, ' ')}</pre>
+        </div>
+        <div className="col-sm-5">
+          <h2>Favorite movies {loadMoreLink}</h2>
+          <ul>{movieComponents}</ul>
+        </div>
+      </div>
     </div>;
   }
 });
 
 const SmartApp = connect(function(state) {
-  return { applicationState: state.apiStore };
+  return { store: state.apiStore };
 }, function(dispatch) {
   return bindActionCreators(actionCreators, dispatch);
 })(App, {store: store});
