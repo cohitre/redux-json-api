@@ -18,7 +18,7 @@ function runLoadRelationship(dispatch, href, type, id, name) {
 export function loadRelationship(model, id, relationshipName) {
   return (dispatch, getState) => {
     const state = getState();
-    const href = state.apiStore.getIn(['relationships', model, id, relationshipName, 'nextPageHref']);
+    const href = state.api.getIn(['relationships', model, id, relationshipName, 'nextPageHref']);
     runLoadRelationship(dispatch, href, model, id, relationshipName);
   };
 }
