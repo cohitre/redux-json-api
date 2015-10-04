@@ -7,17 +7,16 @@ function runLoadRelationship(dispatch, href, type, id, name) {
     relationship
   });
 
-  axios.get(`http://patient-tree-3875.getsandbox.com${href}`)
-    .then(function (response) {
-      return dispatch(Object.assign({
-        type: 'RELATIONSHIP_LOAD',
-        relationship
-      }, response.data));
-    });
+  axios.get(`http://patient-tree-3875.getsandbox.com${href}`).then((response) => {
+    dispatch(Object.assign({
+      type: 'RELATIONSHIP_LOAD',
+      relationship
+    }, response.data));
+  });
 }
 
 export function loadRelationship(model, id, relationshipName) {
-  return function(dispatch, getState) {
+  return (dispatch, getState) => {
     const state = getState();
     const href = state.apiStore.getIn(['relationships', model, id, relationshipName, 'nextPageHref']);
     runLoadRelationship(dispatch, href, model, id, relationshipName);

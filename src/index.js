@@ -1,18 +1,17 @@
-import Immutable from 'immutable';
 import React from 'react/addons';
 import thunk from 'redux-thunk';
 import { combineReducers, createStore, applyMiddleware, bindActionCreators } from 'redux';
 import { Provider, connect } from 'react-redux';
 import * as actionCreators from './actionCreators';
 
-import jsonApiReducer from './jsonApiReducer';
+import jsonApiReducer from './json-api-reducer';
 
 const createStoreWithMiddleware = applyMiddleware(thunk)(createStore);
-const store = createStoreWithMiddleware(combineReducers({
-  apiStore: jsonApiReducer
+const reduxStore = createStoreWithMiddleware(combineReducers({
+  api: jsonApiReducer
 }));
 
-store.dispatch({
+reduxStore.dispatch({
   type: 'DATA_LOAD',
   data: [{
     id: 'user-3903443433',
@@ -33,19 +32,6 @@ store.dispatch({
   }]
 });
 
-function getAttribute(obj, attributeName, defaultValue) {
-  return (obj || Immutable.fromJS({})).getIn(['attributes', attributeName], defaultValue);
-}
-
-const MovieComponent = React.createClass({
-  mixins: [React.addons.PureRenderMixin],
-  render() {
-    const id = this.props.movie.get('id');
-    const title = this.props.movie.getIn(['attributes', 'title']);
-    return <li key={id}>{title} | last rendered {(new Date()).getTime()}</li>;
-  }
-});
-
 const App = React.createClass({
   mixins: [React.addons.PureRenderMixin],
   login(e) {
@@ -62,11 +48,11 @@ const App = React.createClass({
     </div>;
   },
 
-  renderRelationship(relationshipName, modelName) {
+  renderRelationship(relationshipName) {
     const {store} = this.props;
     const currentUserId = store.getIn(['session', 'current-session', 'attributes', 'userId']);
     const getProperties = (base, properties) => {
-      return properties.reduce(function(obj, propName) {
+      return properties.reduce((obj, propName) => {
         obj[propName] = store.getIn(base.concat([propName]));
         return obj;
       }, {});
@@ -82,8 +68,7 @@ const App = React.createClass({
     let loadMoreLink = 'Nothing to load';
     if (isLoadingPage) {
       loadMoreLink = 'loading...';
-    }
-    else if (nextPageHref) {
+    } else if (nextPageHref) {
       loadMoreLink = <a href="#" onClick={loadRelationship}>load more...</a>;
     }
 
@@ -95,10 +80,6 @@ const App = React.createClass({
 
   render() {
     const {store} = this.props;
-
-    const currentUserId = store.getIn(['session', 'current-session', 'attributes', 'userId']);
-    const currentUserEmail = store.getIn(['user', currentUserId, 'attributes', 'email']);
-
     return <div>
       {this.renderTop(store)}
       <div className="row">
@@ -117,14 +98,13 @@ const App = React.createClass({
   }
 });
 
-const SmartApp = connect(function(state) {
-  return { store: state.apiStore };
-}, function(dispatch) {
-  return bindActionCreators(actionCreators, dispatch);
-})(App, {store: store});
+const SmartApp = connect((state) => {
+  return { store: state.api };
+}, (dispatch) => bindActionCreators(actionCreators, dispatch)
+)(App, { store: reduxStore });
 
 window.onload = () => {
-  React.render(  <Provider store={store}>
+  React.render(<Provider store={reduxStore}>
     {() => <SmartApp />}
   </Provider>, document.querySelector('#container'));
 };
