@@ -22,7 +22,12 @@ store.dispatch({
     },
     relationships: {
       'favorite-movies': {
+        self: '/users/user-3903443433/movies/favorites',
         related: '/users/user-3903443433/movies/favorites',
+      },
+      'people': {
+        self: '/users/user-3903443433/people',
+        related: '/users/user-3903443433/people',
       }
     }
   }]
@@ -48,11 +53,6 @@ const App = React.createClass({
     this.props.login();
   },
 
-  loadFavoriteMovies(e) {
-    e.preventDefault();
-    this.props.loadFavoriteMovies();
-  },
-
   renderTop(store) {
     const currentUserId = store.getIn(['session', 'current-session', 'attributes', 'userId']);
     const currentUserEmail = store.getIn(['user', currentUserId, 'attributes', 'email']);
@@ -62,29 +62,42 @@ const App = React.createClass({
     </div>;
   },
 
-  render() {
+  renderRelationship(relationshipName, modelName) {
     const {store} = this.props;
     const currentUserId = store.getIn(['session', 'current-session', 'attributes', 'userId']);
-    const currentUserEmail = store.getIn(['user', currentUserId, 'attributes', 'email']);
-    const movieComponents = store.get('movie', Immutable.Map()).toList()
-      .sort(function(a, b) {
-        return a.getIn(['attributes', 'title']) < b.getIn(['attributes', 'title']) ? -1 : 1;
-      })
-      .reduce(function(movieComponents, value) {
-        movieComponents.push(<MovieComponent movie={value} />);
-        return movieComponents;
-      }, []);
+    const getProperties = (base, properties) => {
+      return properties.reduce(function(obj, propName) {
+        obj[propName] = store.getIn(base.concat([propName]));
+        return obj;
+      }, {});
+    };
 
-    const isLoadingPage = store.getIn(['user', currentUserId, 'relationships', 'favorite-movies', 'isLoadingPage']);
-    const nextPageHref =  store.getIn(['user', currentUserId, 'relationships', 'favorite-movies', 'nextPageHref']);
+    const loadRelationship = (e) => {
+      e.preventDefault();
+      this.props.loadRelationship("user", currentUserId, relationshipName);
+    };
 
+    const r = ['relationships', 'user', currentUserId, relationshipName];
+    const {isLoadingPage, nextPageHref, data} = getProperties(r, ['data', 'nextPageHref', 'isLoadingPage']);
     let loadMoreLink = 'Nothing to load';
     if (isLoadingPage) {
       loadMoreLink = 'loading...';
     }
     else if (nextPageHref) {
-      loadMoreLink = <a href="#" onClick={this.loadFavoriteMovies}>Load favorites</a>;
+      loadMoreLink = <a href="#" onClick={loadRelationship}>load more...</a>;
     }
+
+    return [
+      <h2>/user/{relationshipName} {loadMoreLink}</h2>,
+      <pre>{data &&  JSON.stringify(data.toJS(), null, ' ')}</pre>
+    ];
+  },
+
+  render() {
+    const {store} = this.props;
+
+    const currentUserId = store.getIn(['session', 'current-session', 'attributes', 'userId']);
+    const currentUserEmail = store.getIn(['user', currentUserId, 'attributes', 'email']);
 
     return <div>
       {this.renderTop(store)}
@@ -93,9 +106,11 @@ const App = React.createClass({
           <h2>Store</h2>
           <pre>{JSON.stringify(store.toJS(), null, ' ')}</pre>
         </div>
-        <div className="col-sm-5">
-          <h2>Favorite movies {loadMoreLink}</h2>
-          <ul>{movieComponents}</ul>
+        <div className="col-sm-3">
+          {this.renderRelationship("favorite-movies", "movie")}
+        </div>
+        <div className="col-sm-3">
+          {this.renderRelationship("people", "artist")}
         </div>
       </div>
     </div>;

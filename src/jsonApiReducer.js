@@ -5,12 +5,11 @@ function loadData(state, object) {
   state = state
     .setIn([type, id, 'id'], id)
     .setIn([type, id, 'type'], type)
-    .mergeDeepIn([type, id, 'attributes'], object.attributes);
+    .mergeDeepIn([type, id, 'attributes'], object.attributes)
+    .mergeDeepIn([type, id, 'relationships'], object.relationships);
 
   return Object.keys(object.relationships || {}).reduce(function(state, relationshipName) {
-    return state.mergeIn([type, id, 'relationships', relationshipName], {
-        related: object.relationships[relationshipName].related,
-        self: object.relationships[relationshipName].self,
+    return state.mergeIn(["relationships", type, id, relationshipName], {
         nextPageHref: object.relationships[relationshipName].related,
         size: null,
         data: [],
@@ -22,7 +21,7 @@ function loadData(state, object) {
 function loadHasMany(state, type, id, relationshipName, action) {
   const relationshipList = state.getIn([type, id, 'relationships', relationshipName, 'data'], Immutable.List());
   return getData(action.data).reduce(loadData, state)
-    .mergeIn([type, id, 'relationships', relationshipName], {
+    .mergeIn(['relationships', type, id, relationshipName], {
       nextPageHref: action.links.next,
       size: action.meta.size,
       data: relationshipList.concat(action.data.map(function({id, type}) {
@@ -44,7 +43,7 @@ function getData(data) {
 export default function(state=Immutable.fromJS({}), action) {
   switch (action.type) {
     case 'RELATIONSHIP_LOAD_START':
-      return state.setIn([action.relationship.type, action.relationship.id, 'relationships', action.relationship.name, 'isLoadingPage'], true);
+      return state.setIn(['relationships', action.relationship.type, action.relationship.id, action.relationship.name, 'isLoadingPage'], true);
     case 'RELATIONSHIP_LOAD':
       return loadHasMany(state, action.relationship.type, action.relationship.id, action.relationship.name, {
         meta: action.meta,

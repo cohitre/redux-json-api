@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-function loadRelationship(dispatch, href, type, id, name) {
+function runLoadRelationship(dispatch, href, type, id, name) {
   const relationship = { type, id, name };
   dispatch({
     type: 'RELATIONSHIP_LOAD_START',
@@ -16,13 +16,11 @@ function loadRelationship(dispatch, href, type, id, name) {
     });
 }
 
-export function loadFavoriteMovies() {
+export function loadRelationship(model, id, relationshipName) {
   return function(dispatch, getState) {
     const state = getState();
-    const userId = state.apiStore.getIn(['session', 'current-session', 'attributes', 'userId']);
-    const href = state.apiStore.getIn(['user', userId, 'relationships', 'favorite-movies', 'nextPageHref']);
-
-    loadRelationship(dispatch, href, 'user', userId, 'favorite-movies');
+    const href = state.apiStore.getIn(['relationships', model, id, relationshipName, 'nextPageHref']);
+    runLoadRelationship(dispatch, href, model, id, relationshipName);
   };
 }
 
