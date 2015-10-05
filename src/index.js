@@ -3,6 +3,7 @@ import thunk from 'redux-thunk';
 import { combineReducers, createStore, applyMiddleware, bindActionCreators } from 'redux';
 import { Provider, connect } from 'react-redux';
 import * as actionCreators from './actionCreators';
+import selector from './selector';
 
 import jsonApiReducer from './json-api-reducer';
 
@@ -39,12 +40,24 @@ const App = React.createClass({
     this.props.login();
   },
 
+  randomUser(e) {
+    e.preventDefault();
+    this.props.loadRandomUser();
+  },
+
   renderTop(store) {
     const currentUserId = store.getIn(['session', 'current-session', 'attributes', 'userId']);
-    const currentUserEmail = store.getIn(['user', currentUserId, 'attributes', 'email']);
 
+    const user = selector(store, ['user', currentUserId]);
+    const currentUserEmail = user.attr('email');
     return <div className="text-right">
-      Last updated {(new Date()).getTime()} | {currentUserEmail ? currentUserEmail : <em>No session</em>} | <a className="btn btn-info" onClick={this.login}>Log in</a>
+      Last updated {(new Date()).getTime()}
+      <span> | </span>
+      {currentUserEmail ? currentUserEmail : <em>No session</em>}
+      <span> | </span>
+      <a className="btn btn-info" onClick={this.randomUser}>Random user</a>
+      <span> | </span>
+      <a className="btn btn-info" onClick={this.login}>Log in</a>
     </div>;
   },
 
@@ -74,7 +87,7 @@ const App = React.createClass({
 
     return [
       <h2>/user/{relationshipName} {loadMoreLink}</h2>,
-      <pre>{data &&  JSON.stringify(data.toJS(), null, ' ')}</pre>
+      <pre>{data &&  JSON.stringify(data.toJS(), null, '\t')}</pre>
     ];
   },
 

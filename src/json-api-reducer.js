@@ -66,10 +66,12 @@ export default function(state = Immutable.fromJS({}), action) {
   switch (action.type) {
     case 'RELATIONSHIP_LOAD_START':
       return state.setIn(['relationships', action.relationship.type, action.relationship.id, action.relationship.name, 'isLoadingPage'], true);
-    case 'RELATIONSHIP_LOAD':
-      return loadRelationship(getData(action.data).reduce(loadData, state), action.relationship, pick(action, ['meta', 'links', 'data']));
     case 'DATA_LOAD':
-      return getData(action.data).reduce(loadData, state);
+      let result = getData(action.data).reduce(loadData, state);
+      if (action.relationship) {
+        result = loadRelationship(result, action.relationship, pick(action, ['meta', 'links', 'data']));
+      }
+      return result;
     default:
       return state;
   }

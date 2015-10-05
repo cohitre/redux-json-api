@@ -1,18 +1,37 @@
 import axios from 'axios';
 
 function runLoadRelationship(dispatch, href, type, id, name) {
-  const relationship = { type, id, name };
+  const relationship = { type, id, name, 'action': 'concat' };
   dispatch({
     type: 'RELATIONSHIP_LOAD_START',
     relationship
   });
 
-  axios.get(`http://patient-tree-3875.getsandbox.com${href}`).then((response) => {
+  axios.get(`http://patient-tree-3875.getsandbox.com${href}`).then(({data}) => {
     dispatch(Object.assign({
-      type: 'RELATIONSHIP_LOAD',
+      type: 'DATA_LOAD',
       relationship
-    }, response.data));
+    }, data));
   });
+}
+
+export function loadRandomUser() {
+  return (dispatch) => {
+    axios.get('https://randomuser.me/api/').then(response => {
+      const data = response.data.results[0].user;
+      dispatch({
+        type: 'DATA_LOAD',
+        data: {
+          id: `random-${data.sha1}`,
+          type: 'random-user',
+          attributes: {
+            email: data.email,
+            username: data.username
+          }
+        }
+      })
+    });
+  }
 }
 
 export function loadRelationship(model, id, relationshipName) {
